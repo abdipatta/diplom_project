@@ -1,32 +1,17 @@
-import { useEffect, useState } from "react";
-import { getStoragedItem } from "../utils/helpers/storageHelpers";
+import { ReactElement, useContext } from "react";
 import { Navigate } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 type Props = {
-  component: () => JSX.Element;
+  component: ReactElement;
   fallbackPath: string;
 };
 
 export const PrivateRoute = ({ component: Component, fallbackPath }: Props) => {
-  const [loginData, setLoginData] = useState<{
-    username: string;
-    isAuth: boolean;
-  }>({
-    username: "",
-    isAuth: false,
-  });
+  const ctx = useContext(AuthContext);
 
-  useEffect(() => {
-    const data = getStoragedItem("LOGIN_DATA");
-    console.log(data);
-
-    if (data !== undefined) {
-      setLoginData(data);
-    }
-  }, []);
-
-  if (loginData.isAuth === false) {
+  if (!ctx?.isAuth) {
     return <Navigate to={fallbackPath} />;
   }
-  return <Component />;
+  return Component;
 };

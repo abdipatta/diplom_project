@@ -1,27 +1,61 @@
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  Navigate,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
 import { MainLayout } from "../layout/MainLayout";
-import { Login } from "../pages/Login";
-import { Orders } from "../pages/Orders";
-import { Settings } from "../pages/Settings";
 import { PrivateRoute } from "./PrivateRoute";
+import { Suspense, lazy, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
 
+const Login = lazy(() => import("../pages/Login"));
+const Orders = lazy(() => import("../pages/Orders"));
+const Settings = lazy(() => import("../pages/Settings"));
 export const AppRoutes = () => {
+  const ctx = useContext(AuthContext);
+
   const router = createBrowserRouter([
     {
       path: "/",
       element: <MainLayout />,
       children: [
         {
+          path: "/login",
+          element: (
+            <Suspense fallback="loading">
+              <Login />
+            </Suspense>
+          ),
+        },
+        {
           path: "/",
-          element: <PrivateRoute component={Login} fallbackPath="/orders" />,
+          element: <Navigate to={ctx?.isAuth ? "/orders" : "/login"} />,
         },
         {
           path: "/orders",
-          element: <PrivateRoute component={Orders} fallbackPath="/" />,
+          element: (
+            <PrivateRoute
+              component={
+                <Suspense fallback="loading">
+                  <Orders />
+                </Suspense>
+              }
+              fallbackPath="/"
+            />
+          ),
         },
         {
           path: "/settings",
-          element: <PrivateRoute component={Settings} fallbackPath="/" />,
+          element: (
+            <PrivateRoute
+              component={
+                <Suspense fallback="loading">
+                  <Settings />
+                </Suspense>
+              }
+              fallbackPath="/"
+            />
+          ),
         },
       ],
     },

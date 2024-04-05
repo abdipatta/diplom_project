@@ -6,7 +6,7 @@ export const getStoragedItem = (key: string) => {
   }
 };
 export const addItemToStorage = (
-  item: { username: string; isAuth: boolean } | string,
+  item: { email: string; isAuth: boolean; fullName: string } | string,
   key: string
 ) => {
   localStorage.setItem(key, JSON.stringify(item));

@@ -1,22 +1,21 @@
-import axios, { AxiosError } from "axios";
 import { Button } from "../components/UI/Button";
 import { Input } from "../components/UI/Input";
-import { BASE_URL } from "../utils/constants";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CloseEye from "../assets/close-eye.svg?react";
 import Eye from "../assets/eye.svg?react";
-import { addItemToStorage } from "../utils/helpers/storageHelpers";
+import { AuthContext } from "../contexts/AuthContext";
 
-export const Login = () => {
+const Login = () => {
   const navigate = useNavigate();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
+  const ctx = useContext(AuthContext);
+
   const [formValue, setFormValue] = useState({
-    username: "",
+    email: "",
     password: "",
   });
-  const [errorMessage, setErrorMessage] = useState<string | undefined>("");
 
   const changeFormValue = (e: ChangeEvent<HTMLInputElement>) => {
     setFormValue((prevState) => ({
@@ -28,26 +27,13 @@ export const Login = () => {
   const login = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    try {
-      const { data } = await axios.post(`${BASE_URL}/auth`, formValue);
-      navigate("/orders");
-      addItemToStorage(
-        { username: data.data.username, isAuth: true },
-        "LOGIN_DATA"
-      );
-    } catch (error) {
-      const e = error as AxiosError<{
-        status: number;
-        message: string;
-      }>;
-      setErrorMessage(e.response?.data.message);
-    }
+    ctx?.signIn(formValue, navigate);
   };
 
   const toggleVisiblePassword = () =>
     setPasswordVisible((prevState) => !prevState);
 
-  const disabledBtn = !formValue.password || !formValue.username;
+  const disabledBtn = !formValue.password || !formValue.email;
 
   return (
     <div className="bg-white px-5 py-10 rounded-3xl sm:w-96 shadow-xl mx-auto mt-14 text-center">
@@ -56,10 +42,11 @@ export const Login = () => {
       <form className="flex flex-col gap-3" onSubmit={login}>
         <Input
           onChange={changeFormValue}
-          value={formValue.username}
-          error={!formValue.username}
-          name="username"
-          placeholder="Username"
+          value={formValue.email}
+          error={!formValue.email}
+          name="email"
+          placeholder="Email"
+          type="email"
         />
 
         <Input
@@ -73,7 +60,9 @@ export const Login = () => {
           type={passwordVisible ? "text" : "password"}
         />
 
-        {errorMessage && <p className="text-[#f00]">{errorMessage}</p>}
+        {ctx?.errorMessage && (
+          <p className="text-[#f00]">{ctx?.errorMessage}</p>
+        )}
 
         <Button disabled={disabledBtn} type="submit">
           Login
@@ -82,3 +71,5 @@ export const Login = () => {
     </div>
   );
 };
+
+export default Login;

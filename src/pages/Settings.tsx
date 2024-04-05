@@ -13,34 +13,52 @@ import axios, { AxiosError } from "axios";
 import { BASE_URL, SELECT_OPTIONS } from "../utils/constants";
 import { Select } from "../components/UI/Select";
 
-export const Settings = () => {
+const Settings = () => {
   const [openEditModal, setOpenEditModal] = useState<boolean>(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>("");
+  const [isEdit, setIsEdit] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   const [formValue, setFormValue] = useState({
     firstName: "",
     lastName: "",
     middleName: "",
     password: "",
     role: "user",
+    email: "",
   });
 
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [user, setUser] = useState<UserType>();
-  const [errorMessage, setErrorMessage] = useState<string | undefined>("");
-
-  const openModalhandler = (user: UserType) => {
+  const openModalhandler = () => {
     setOpenEditModal(true);
-    setUser(user);
+    setIsEdit(false);
+    setFormValue({
+      email: "",
+      firstName: "",
+      lastName: "",
+      middleName: "",
+      password: "",
+      role: "user",
+    });
+  };
+
+  const openEditModalHandler = (user: UserType) => {
+    setOpenEditModal(true);
+    setIsEdit(true);
+    setUserId(user.id);
     setFormValue({
       firstName: user.firstName,
       lastName: user.lastName,
       middleName: user.middleName,
       password: user.password,
       role: user.role,
+      email: user.email,
     });
   };
 
-  const closeModalhandler = () => setOpenEditModal(false);
+  const closeModalhandler = () => {
+    setOpenEditModal(false);
+  };
 
   const toggleVisiblePassword = () =>
     setPasswordVisible((prevState) => !prevState);
@@ -58,11 +76,15 @@ export const Settings = () => {
 
   const getUsers = async () => {
     try {
-      const { data } = await axios.get<UserType[]>(`${BASE_URL}/all-users`);
+      const { data } = await axios.get<UserType[]>(`${BASE_URL}/users`);
 
       setUsers(data);
     } catch (error) {
-      console.error(error);
+      const e = error as AxiosError<{
+        status: number;
+        message: string;
+      }>;
+      setErrorMessage(e.response?.data.message);
     }
   };
 
@@ -70,10 +92,34 @@ export const Settings = () => {
     getUsers();
   }, []);
 
+  const addUser = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      await axios.post(`${BASE_URL}/users`, formValue);
+      closeModalhandler();
+      getUsers();
+      setFormValue({
+        email: "",
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        password: "",
+        role: "user",
+      });
+    } catch (error) {
+      const e = error as AxiosError<{
+        status: number;
+        message: string;
+      }>;
+      setErrorMessage(e.response?.data.message);
+    }
+  };
+
   const editUser = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.patch(`${BASE_URL}/all-users/${user?.id}`, formValue);
+      await axios.patch(`${BASE_URL}/users/${userId}`, formValue);
       getUsers();
       closeModalhandler();
     } catch (error) {
@@ -85,9 +131,9 @@ export const Settings = () => {
     }
   };
 
-  const deleteUser = async (id: number) => {
+  const deleteUser = async (id: number | undefined) => {
     try {
-      await axios.delete(`${BASE_URL}/all-users/${id}`);
+      await axios.delete(`${BASE_URL}/users/${id}`);
       getUsers();
     } catch (error) {
       const e = error as AxiosError<{
@@ -107,7 +153,12 @@ export const Settings = () => {
 
   return (
     <>
-      <h1 className="text-orange font-bold mb-4 text-xl">Settings</h1>
+      <div className="flex justify-between">
+        <h1 className="text-orange font-bold mb-4 text-xl">Settings</h1>
+        <div className="w-20">
+          <Button onClick={openModalhandler}>Add</Button>
+        </div>
+      </div>
       <div className="h-[75vh] overflow-hidden overflow-y-auto">
         {users &&
           users.map((user) => (
@@ -119,7 +170,10 @@ export const Settings = () => {
                 <p className="font-bold">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="mb-2 font-bold">username</p>
+                <p className="mb-2 font-bold max-w-40 overflow-hidden text-ellipsis">
+                  {user.email}
+                </p>
+
                 <p className="bg-light-orange text-orange text-center rounded-xl text-sm w-fit px-3 capitalize">
                   {user.role}
                 </p>
@@ -127,10 +181,11 @@ export const Settings = () => {
               <div className="flex sm:flex-col flex-row h-8 gap-2">
                 <IconButton
                   icon={<Pencil />}
-                  onClick={() => openModalhandler(user)}
+                  onClick={() => openEditModalHandler(user)}
                 />
                 <IconButton
-                  icon={<Trash onClick={() => deleteUser(user.id)} />}
+                  icon={<Trash />}
+                  onClick={() => deleteUser(user.id)}
                   variant="outlined"
                 />
               </div>
@@ -139,11 +194,14 @@ export const Settings = () => {
       </div>
 
       <Modal open={openEditModal} onClose={closeModalhandler}>
-        <div className="flex justify-between items-center mb-5 sm:w-[380px] w-64">
+        <div className="flex justify-between items-center mb-5 sm:w-auto w-64">
           <h1 className="text-xl text-orange font-semibold">Edit</h1>
           <Close className="cursor-pointer" onClick={closeModalhandler} />
         </div>
-        <form className="flex flex-col gap-3" onSubmit={editUser}>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={isEdit ? editUser : addUser}
+        >
           <Input
             placeholder="First name"
             onChange={handleChangeValue}
@@ -164,6 +222,14 @@ export const Settings = () => {
             value={formValue.middleName}
             name="middleName"
             error={!formValue.middleName}
+          />
+          <Input
+            placeholder="Email"
+            onChange={handleChangeValue}
+            value={formValue.email}
+            name="email"
+            error={!formValue.email}
+            type="email"
           />
           <Input
             placeholder="Password"
@@ -187,7 +253,7 @@ export const Settings = () => {
               Go back
             </Button>
             <Button type="submit" disabled={!!disabledBtn}>
-              Login
+              {isEdit ? "Edit" : "Save"}
             </Button>
           </div>
         </form>
@@ -195,3 +261,5 @@ export const Settings = () => {
     </>
   );
 };
+
+export default Settings;

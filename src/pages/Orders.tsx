@@ -8,7 +8,7 @@ import { Modal } from "../components/UI/Modal";
 import Close from "../assets/close.svg?react";
 import { Input } from "../components/UI/Input";
 
-export const Orders = () => {
+const Orders = () => {
   const [orders, setOrders] = useState<OrderType[] | undefined>();
   const [openModal, setOpenModal] = useState(false);
   const [openSecondModal, setOpenSecondModal] = useState(false);
@@ -22,11 +22,6 @@ export const Orders = () => {
 
   const closeModalhandler = () => {
     setOpenModal(false);
-  };
-
-  const openSecondModalhandler = () => {
-    setOpenSecondModal(true);
-    closeModalhandler();
   };
 
   const closeSecondModalhandler = () => {
@@ -53,6 +48,25 @@ export const Orders = () => {
   useEffect(() => {
     getOrders();
   }, []);
+
+  const postOrder = async () => {
+    try {
+      await axios.post(`${BASE_URL}/orders`, {
+        fullName: "John Doe",
+        order: 320,
+        price: 1500,
+      });
+      setOpenSecondModal(true);
+      closeModalhandler();
+      getOrders();
+    } catch (error) {
+      const e = error as AxiosError<{
+        status: number;
+        message: string;
+      }>;
+      setErrorMessage(e.response?.data.message);
+    }
+  };
 
   const orderColumns: Column<OrderType>[] = [
     {
@@ -110,10 +124,7 @@ export const Orders = () => {
             type="number"
           />
         </div>
-        <Button
-          disabled={+userPrice < totalPrice}
-          onClick={openSecondModalhandler}
-        >
+        <Button disabled={+userPrice < totalPrice} onClick={postOrder}>
           Save
         </Button>
       </Modal>
@@ -133,3 +144,5 @@ export const Orders = () => {
     </>
   );
 };
+
+export default Orders;

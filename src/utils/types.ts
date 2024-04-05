@@ -19,4 +19,5 @@ export type UserType = {
   lastName: string;
   middleName: string;
   role: string;
+  email: string;
 };
