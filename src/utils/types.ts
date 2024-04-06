@@ -9,7 +9,8 @@ export type OrderType = {
   id: number;
   fullName: string;
   order: number;
-  price: number;
+  change: number;
+  buyerMoney: number;
 };
 
 export type UserType = {

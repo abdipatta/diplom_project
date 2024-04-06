@@ -13,11 +13,13 @@ const Orders = () => {
   const [openModal, setOpenModal] = useState(false);
   const [openSecondModal, setOpenSecondModal] = useState(false);
   const [userPrice, setUserPrice] = useState("");
-  const [totalPrice] = useState(230);
+  const [order, setOrder] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | undefined>("");
+  const [totalOrder, setTotalOrder] = useState(0);
 
   const openModalhandler = () => {
     setOpenModal(true);
+    setOrder(+(Math.random() * 1000).toFixed());
   };
 
   const closeModalhandler = () => {
@@ -36,6 +38,7 @@ const Orders = () => {
     try {
       const { data } = await axios.get<OrderType[]>(`${BASE_URL}/orders`);
       setOrders(data);
+      setTotalOrder(data.reduce((acc, cur) => acc + cur.order, 0));
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -53,8 +56,9 @@ const Orders = () => {
     try {
       await axios.post(`${BASE_URL}/orders`, {
         fullName: "John Doe",
-        order: 320,
-        price: 1500,
+        order: order,
+        buyerMoney: userPrice,
+        change: +userPrice - order,
       });
       setOpenSecondModal(true);
       closeModalhandler();
@@ -70,18 +74,23 @@ const Orders = () => {
 
   const orderColumns: Column<OrderType>[] = [
     {
-      header: "Client name",
+      header: "Cashier name",
       key: "fullName",
     },
     {
       header: "Order",
       key: "order",
-      render: (data) => <span>{data.order} kg</span>,
+      render: (data) => <span>{data.order} $</span>,
     },
     {
-      header: "Price",
-      key: "price",
-      render: (data) => <span>{data.price} $</span>,
+      header: "Buyer's money",
+      key: "buyerMoney",
+      render: (data) => <span>{data.buyerMoney} $</span>,
+    },
+    {
+      header: "Change",
+      key: "change",
+      render: (data) => <span>{data.change} $</span>,
     },
     {
       header: "",
@@ -100,11 +109,14 @@ const Orders = () => {
       </div>
       {errorMessage && <p className="text-[#f00]">{errorMessage}</p>}
       {orders && (
-        <Table
-          columns={orderColumns}
-          rows={orders}
-          getUniqueId={(val) => val.id}
-        />
+        <>
+          <Table
+            columns={orderColumns}
+            rows={orders}
+            getUniqueId={(val) => val.id}
+          />
+          <p>Total order {totalOrder}$</p>
+        </>
       )}
       <Modal open={openModal} onClose={closeModalhandler}>
         <div className="flex justify-between items-center mb-5">
@@ -113,7 +125,7 @@ const Orders = () => {
         </div>
         <div className="flex justify-between mb-5">
           <p>Total price</p>
-          <p>{totalPrice}$</p>
+          <p>{order}$</p>
         </div>
         <div className="mb-5">
           <Input
@@ -124,7 +136,7 @@ const Orders = () => {
             type="number"
           />
         </div>
-        <Button disabled={+userPrice < totalPrice} onClick={postOrder}>
+        <Button disabled={+userPrice < order} onClick={postOrder}>
           Save
         </Button>
       </Modal>
@@ -135,7 +147,7 @@ const Orders = () => {
         </div>
         <div className="flex justify-between mb-5">
           <p>Total mount</p>
-          <p>{+userPrice - totalPrice}$</p>
+          <p>{+userPrice - order}$</p>
         </div>
         <Button variant="outlined" onClick={closeSecondModalhandler}>
           Back to orders
