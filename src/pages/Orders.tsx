@@ -16,10 +16,12 @@ const Orders = () => {
   const [order, setOrder] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | undefined>("");
   const [totalOrder, setTotalOrder] = useState(0);
+  const [orderId, setOrderId] = useState<number | null>(null);
 
-  const openModalhandler = () => {
+  const openModalhandler = (data: OrderType) => {
     setOpenModal(true);
-    setOrder(+(Math.random() * 1000).toFixed());
+    setOrder(data.order);
+    setOrderId(data.id);
   };
 
   const closeModalhandler = () => {
@@ -38,7 +40,6 @@ const Orders = () => {
     try {
       const { data } = await axios.get<OrderType[]>(`${BASE_URL}/orders`);
       setOrders(data);
-      setTotalOrder(data.reduce((acc, cur) => acc + cur.order, 0));
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -51,13 +52,18 @@ const Orders = () => {
   useEffect(() => {
     getOrders();
   }, []);
+  useEffect(() => {
+    if (orders) {
+      setTotalOrder(
+        orders.reduce((acc, cur) => acc + cur.buyerMoney - cur.change, 0)
+      );
+    }
+  }, [orders]);
 
   const postOrder = async () => {
     try {
-      await axios.post(`${BASE_URL}/orders`, {
-        fullName: "John Doe",
-        order: order,
-        buyerMoney: userPrice,
+      await axios.patch(`${BASE_URL}/orders/${orderId}`, {
+        buyerMoney: +userPrice,
         change: +userPrice - order,
       });
       setOpenSecondModal(true);
@@ -95,18 +101,15 @@ const Orders = () => {
     {
       header: "",
       key: "",
-      render: () => <Button>Buy</Button>,
+      render: (data) => (
+        <Button onClick={() => openModalhandler(data)}>Buy</Button>
+      ),
     },
   ];
 
   return (
     <>
-      <div className="flex justify-between">
-        <h1 className="text-orange font-bold mb-4 text-xl">Orders</h1>
-        <div className="w-20">
-          <Button onClick={openModalhandler}>Add</Button>
-        </div>
-      </div>
+      <h1 className="text-orange font-bold mb-4 text-xl">Orders</h1>
       {errorMessage && <p className="text-[#f00]">{errorMessage}</p>}
       {orders && (
         <>

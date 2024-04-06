@@ -179,15 +179,19 @@ const Settings = () => {
                 </p>
               </div>
               <div className="flex sm:flex-col flex-row h-8 gap-2">
-                <IconButton
-                  icon={<Pencil />}
-                  onClick={() => openEditModalHandler(user)}
-                />
-                <IconButton
-                  icon={<Trash />}
-                  onClick={() => deleteUser(user.id)}
-                  variant="outlined"
-                />
+                {user.email !== "admin@gmail.com" && (
+                  <>
+                    <IconButton
+                      icon={<Pencil />}
+                      onClick={() => openEditModalHandler(user)}
+                    />
+                    <IconButton
+                      icon={<Trash />}
+                      onClick={() => deleteUser(user.id)}
+                      variant="outlined"
+                    />
+                  </>
+                )}
               </div>
             </div>
           ))}
