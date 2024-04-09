@@ -1,5 +1,5 @@
 import { IconButton } from "../components/UI/IconButton";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "../components/UI/Modal";
 import { Input } from "../components/UI/Input";
 import { Button } from "../components/UI/Button";
@@ -12,6 +12,7 @@ import { UserType } from "../utils/types";
 import axios, { AxiosError } from "axios";
 import { BASE_URL, SELECT_OPTIONS } from "../utils/constants";
 import { Select } from "../components/UI/Select";
+import { useForm } from "react-hook-form";
 
 const Settings = () => {
   const [openEditModal, setOpenEditModal] = useState<boolean>(false);
@@ -19,20 +20,29 @@ const Settings = () => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>("");
   const [isEdit, setIsEdit] = useState(false);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [formValue, setFormValue] = useState({
-    firstName: "",
-    lastName: "",
-    middleName: "",
-    password: "",
-    role: "user",
-    email: "",
+  const [userId, setUserId] = useState<number | undefined>();
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const {
+    reset,
+    handleSubmit,
+    register,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      middleName: "",
+      password: "",
+      role: "user",
+      email: "",
+    },
   });
 
   const openModalhandler = () => {
     setOpenEditModal(true);
     setIsEdit(false);
-    setFormValue({
+    reset({
       email: "",
       firstName: "",
       lastName: "",
@@ -46,7 +56,8 @@ const Settings = () => {
     setOpenEditModal(true);
     setIsEdit(true);
     setUserId(user.id);
-    setFormValue({
+    setValue("firstName", user.firstName);
+    reset({
       firstName: user.firstName,
       lastName: user.lastName,
       middleName: user.middleName,
@@ -60,19 +71,16 @@ const Settings = () => {
     setOpenEditModal(false);
   };
 
+  const openDeleteModalHandler = (id: number | undefined) => {
+    setOpenDeleteModal(true);
+    setUserId(id);
+  };
+  const closeDeleteModalhandler = () => {
+    setOpenDeleteModal(false);
+  };
+
   const toggleVisiblePassword = () =>
     setPasswordVisible((prevState) => !prevState);
-
-  const handleChangeValue = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormValue((prevState) => ({
-      ...prevState,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleRoleChangeValue = (e: ChangeEvent<HTMLSelectElement>) => {
-    setFormValue((prevState) => ({ ...prevState, role: e.target.value }));
-  };
 
   const getUsers = async () => {
     try {
@@ -92,14 +100,12 @@ const Settings = () => {
     getUsers();
   }, []);
 
-  const addUser = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const addUser = async (value: UserType) => {
     try {
-      await axios.post(`${BASE_URL}/users`, formValue);
+      await axios.post(`${BASE_URL}/users`, value);
       closeModalhandler();
       getUsers();
-      setFormValue({
+      reset({
         email: "",
         firstName: "",
         lastName: "",
@@ -116,10 +122,9 @@ const Settings = () => {
     }
   };
 
-  const editUser = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const editUser = async (value: UserType) => {
     try {
-      await axios.patch(`${BASE_URL}/users/${userId}`, formValue);
+      await axios.patch(`${BASE_URL}/users/${userId}`, value);
       getUsers();
       closeModalhandler();
     } catch (error) {
@@ -131,10 +136,11 @@ const Settings = () => {
     }
   };
 
-  const deleteUser = async (id: number | undefined) => {
+  const deleteUser = async () => {
     try {
-      await axios.delete(`${BASE_URL}/users/${id}`);
+      await axios.delete(`${BASE_URL}/users/${userId}`);
       getUsers();
+      closeDeleteModalhandler();
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -143,13 +149,6 @@ const Settings = () => {
       setErrorMessage(e.response?.data.message);
     }
   };
-
-  const disabledBtn =
-    !formValue.password ||
-    !formValue.firstName ||
-    !formValue.lastName ||
-    !formValue.middleName ||
-    !formValue.role;
 
   return (
     <>
@@ -187,7 +186,7 @@ const Settings = () => {
                     />
                     <IconButton
                       icon={<Trash />}
-                      onClick={() => deleteUser(user.id)}
+                      onClick={() => openDeleteModalHandler(user.id)}
                       variant="outlined"
                     />
                   </>
@@ -199,56 +198,52 @@ const Settings = () => {
 
       <Modal open={openEditModal} onClose={closeModalhandler}>
         <div className="flex justify-between items-center mb-5 sm:w-auto w-64">
-          <h1 className="text-xl text-orange font-semibold">Edit</h1>
+          <h1 className="text-xl text-orange font-semibold">
+            {isEdit ? "Edit" : "Save"}
+          </h1>
           <Close className="cursor-pointer" onClick={closeModalhandler} />
         </div>
         <form
           className="flex flex-col gap-3"
-          onSubmit={isEdit ? editUser : addUser}
+          onSubmit={isEdit ? handleSubmit(editUser) : handleSubmit(addUser)}
         >
           <Input
             placeholder="First name"
-            onChange={handleChangeValue}
-            value={formValue.firstName}
+            {...register("firstName", { required: true })}
             name="firstName"
-            error={!formValue.firstName}
+            error={!!errors.firstName}
           />
           <Input
             placeholder="Last name"
-            onChange={handleChangeValue}
-            value={formValue.lastName}
+            {...register("lastName", { required: true })}
             name="lastName"
-            error={!formValue.lastName}
+            error={!!errors.lastName}
           />
           <Input
             placeholder="Middle name"
-            onChange={handleChangeValue}
-            value={formValue.middleName}
+            {...register("middleName", { required: true })}
             name="middleName"
-            error={!formValue.middleName}
+            error={!!errors.middleName}
           />
           <Input
             placeholder="Email"
-            onChange={handleChangeValue}
-            value={formValue.email}
+            {...register("email", { required: true })}
             name="email"
-            error={!formValue.email}
+            error={!!errors.email}
             type="email"
           />
           <Input
             placeholder="Password"
-            onChange={handleChangeValue}
-            value={formValue.password}
+            {...register("password", { required: !isEdit })}
             name="password"
             type={passwordVisible ? "text" : "password"}
             onClick={toggleVisiblePassword}
             icon={passwordVisible ? <CloseEye /> : <Eye />}
-            error={!formValue.password}
+            error={!!errors.password}
           />
           <Select
             options={SELECT_OPTIONS}
-            onChange={handleRoleChangeValue}
-            value={formValue.role}
+            {...register("role", { required: true })}
             name="role"
           />
           {errorMessage && <p className="text-[#f00]">{errorMessage}</p>}
@@ -256,11 +251,21 @@ const Settings = () => {
             <Button variant="outlined" onClick={closeModalhandler}>
               Go back
             </Button>
-            <Button type="submit" disabled={!!disabledBtn}>
-              {isEdit ? "Edit" : "Save"}
-            </Button>
+            <Button type="submit">{isEdit ? "Edit" : "Save"}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={openDeleteModal} onClose={closeDeleteModalhandler}>
+        <h3 className="text-xl mb-4 text-center font-bold">
+          Are you sure you want to delete this?
+        </h3>
+        <div className="flex gap-4">
+          <Button variant="outlined" onClick={closeDeleteModalhandler}>
+            Cancel
+          </Button>
+          <Button onClick={deleteUser}>Yes</Button>
+        </div>
       </Modal>
     </>
   );

@@ -1,4 +1,4 @@
-import { ComponentPropsWithoutRef, ReactNode } from "react";
+import { ComponentPropsWithoutRef, ReactNode, forwardRef } from "react";
 
 interface Props extends ComponentPropsWithoutRef<"button"> {
   styles?: string;
@@ -6,22 +6,21 @@ interface Props extends ComponentPropsWithoutRef<"button"> {
   children: ReactNode;
 }
 
-export const Button = ({
-  styles,
-  variant = "contained",
-  children,
-  ...props
-}: Props) => {
-  return (
-    <button
-      {...props}
-      className={`${
-        variant === "contained" ? "bg-orange" : "bg-light-orange"
-      } ${
-        variant === "contained" ? "text-white" : "text-orange"
-      } border-none font-semibold rounded-3xl py-1 w-full disabled:opacity-25 ${styles}`}
-    >
-      {children}
-    </button>
-  );
-};
+type Ref = HTMLButtonElement;
+
+export const Button = forwardRef<Ref, Props>(
+  ({ styles, variant = "contained", children, ...props }) => {
+    return (
+      <button
+        {...props}
+        className={`${
+          variant === "contained" ? "bg-orange" : "bg-light-orange"
+        } ${
+          variant === "contained" ? "text-white" : "text-orange"
+        } border-none font-semibold rounded-3xl py-1 w-full disabled:opacity-25 ${styles}`}
+      >
+        {children}
+      </button>
+    );
+  }
+);

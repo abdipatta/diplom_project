@@ -55,7 +55,7 @@ const Orders = () => {
   useEffect(() => {
     if (orders) {
       setTotalOrder(
-        orders.reduce((acc, cur) => acc + cur.buyerMoney - cur.change, 0)
+        orders.reduce((acc, cur) => acc + cur.paid - cur.change, 0)
       );
     }
   }, [orders]);
@@ -63,7 +63,7 @@ const Orders = () => {
   const postOrder = async () => {
     try {
       await axios.patch(`${BASE_URL}/orders/${orderId}`, {
-        buyerMoney: +userPrice,
+        paid: +userPrice,
         change: +userPrice - order,
       });
       setOpenSecondModal(true);
@@ -89,9 +89,9 @@ const Orders = () => {
       render: (data) => <span>{data.order} $</span>,
     },
     {
-      header: "Buyer's money",
-      key: "buyerMoney",
-      render: (data) => <span>{data.buyerMoney} $</span>,
+      header: "Paid",
+      key: "paid",
+      render: (data) => <span>{data.paid} $</span>,
     },
     {
       header: "Change",

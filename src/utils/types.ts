@@ -10,12 +10,12 @@ export type OrderType = {
   fullName: string;
   order: number;
   change: number;
-  buyerMoney: number;
+  paid: number;
 };
 
 export type UserType = {
   password: string;
-  id: number;
+  id?: number;
   firstName: string;
   lastName: string;
   middleName: string;
