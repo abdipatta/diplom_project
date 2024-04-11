@@ -15,13 +15,23 @@ const Orders = () => {
   const [userPrice, setUserPrice] = useState("");
   const [order, setOrder] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | undefined>("");
-  const [totalOrder, setTotalOrder] = useState(0);
+  const [totalOrder, setTotalOrder] = useState<number>(0);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [openCashOutModal, setOpenCashOutModal] = useState(false);
+  const [amount, setAmount] = useState<string>("");
 
   const openModalhandler = (data: OrderType) => {
     setOpenModal(true);
     setOrder(data.order);
     setOrderId(data.id);
+  };
+
+  const openCashOutModalHandler = () => {
+    setOpenCashOutModal(true);
+  };
+
+  const closeCashOutModalHandler = () => {
+    setOpenCashOutModal(false);
   };
 
   const closeModalhandler = () => {
@@ -34,6 +44,15 @@ const Orders = () => {
 
   const changeUserPrice = (e: ChangeEvent<HTMLInputElement>) => {
     setUserPrice(e.target.value);
+  };
+
+  const withdrawMoneyHandler = () => {
+    const res = totalOrder && totalOrder - +amount;
+    if (res) {
+      changeOrder(res);
+      setAmount("");
+    }
+    closeCashOutModalHandler();
   };
 
   const getOrders = async () => {
@@ -52,13 +71,45 @@ const Orders = () => {
   useEffect(() => {
     getOrders();
   }, []);
-  useEffect(() => {
-    if (orders) {
-      setTotalOrder(
-        orders.reduce((acc, cur) => acc + cur.paid - cur.change, 0)
-      );
+
+  const getTotalOrder = async () => {
+    try {
+      const { data } = await axios.get(`${BASE_URL}/total-order`);
+      setTotalOrder(data[0].order);
+    } catch (error) {
+      const e = error as AxiosError<{
+        status: number;
+        message: string;
+      }>;
+      setErrorMessage(e.response?.data.message);
     }
-  }, [orders]);
+  };
+
+  useEffect(() => {
+    getTotalOrder();
+  }, []);
+
+  const changeOrder = async (res: number | undefined) => {
+    try {
+      console.log("test");
+
+      await axios.patch(`${BASE_URL}/total-order/1`, { order: res });
+      getTotalOrder();
+    } catch (error) {
+      const e = error as AxiosError<{
+        status: number;
+        message: string;
+      }>;
+      setErrorMessage(e.response?.data.message);
+    }
+  };
+
+  useEffect(() => {
+    const res = orders?.reduce((acc, cur) => acc + cur.paid - cur.change, 0);
+    console.log(res);
+
+    changeOrder(res);
+  }, []);
 
   const postOrder = async () => {
     try {
@@ -69,6 +120,7 @@ const Orders = () => {
       setOpenSecondModal(true);
       closeModalhandler();
       getOrders();
+      changeOrder(totalOrder && totalOrder + (+userPrice - order));
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -118,9 +170,13 @@ const Orders = () => {
             rows={orders}
             getUniqueId={(val) => val.id}
           />
-          <p>Total order {totalOrder}$</p>
+          <p>Total order {totalOrder && totalOrder}$</p>
+          <div className="w-32">
+            <Button onClick={openCashOutModalHandler}>Cash out</Button>
+          </div>
         </>
       )}
+
       <Modal open={openModal} onClose={closeModalhandler}>
         <div className="flex justify-between items-center mb-5">
           <h1 className="text-lg font-bold">Payment</h1>
@@ -150,11 +206,30 @@ const Orders = () => {
         </div>
         <div className="flex justify-between mb-5">
           <p>Total mount</p>
-          <p>{+userPrice - order}$</p>
+          <p>{totalOrder && totalOrder}$</p>
         </div>
         <Button variant="outlined" onClick={closeSecondModalhandler}>
           Back to orders
         </Button>
+      </Modal>
+
+      <Modal open={openCashOutModal} onClose={closeCashOutModalHandler}>
+        <div className="flex flex-col gap-4">
+          <p>Total order {totalOrder && totalOrder}$</p>
+          <Input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            type="number"
+            placeholder="Amount"
+            min={0}
+          />
+          <Button
+            onClick={withdrawMoneyHandler}
+            disabled={!amount || +amount > totalOrder}
+          >
+            Withdraw money
+          </Button>
+        </div>
       </Modal>
     </>
   );
