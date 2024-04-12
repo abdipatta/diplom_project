@@ -24,6 +24,7 @@ const Orders = () => {
     setOpenModal(true);
     setOrder(data.order);
     setOrderId(data.id);
+    setUserPrice("");
   };
 
   const openCashOutModalHandler = () => {
@@ -91,10 +92,8 @@ const Orders = () => {
 
   const changeOrder = async (res: number | undefined) => {
     try {
-      console.log("test");
-
       await axios.patch(`${BASE_URL}/total-order/1`, { order: res });
-      getTotalOrder();
+      await getTotalOrder();
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -104,23 +103,17 @@ const Orders = () => {
     }
   };
 
-  useEffect(() => {
-    const res = orders?.reduce((acc, cur) => acc + cur.paid - cur.change, 0);
-    console.log(res);
-
-    changeOrder(res);
-  }, []);
-
   const postOrder = async () => {
     try {
-      await axios.patch(`${BASE_URL}/orders/${orderId}`, {
+      const paidObj = {
         paid: +userPrice,
         change: +userPrice - order,
-      });
+      };
+      await axios.patch(`${BASE_URL}/orders/${orderId}`, paidObj);
       setOpenSecondModal(true);
+      changeOrder(totalOrder + order);
       closeModalhandler();
       getOrders();
-      changeOrder(totalOrder && totalOrder + (+userPrice - order));
     } catch (error) {
       const e = error as AxiosError<{
         status: number;
@@ -206,7 +199,8 @@ const Orders = () => {
         </div>
         <div className="flex justify-between mb-5">
           <p>Total mount</p>
-          <p>{totalOrder && totalOrder}$</p>
+          {/* change this line */}
+          <p>{+userPrice - +order}$</p>
         </div>
         <Button variant="outlined" onClick={closeSecondModalhandler}>
           Back to orders
