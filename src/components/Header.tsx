@@ -23,6 +23,8 @@ export const Header = () => {
             <Menu className="cursor-pointer" onClick={toggleSideBar} />
           )}
           <p>LOGO</p>
+  
+
         </div>
         {ctx?.isAuth && (
           <div className="flex items-center">
